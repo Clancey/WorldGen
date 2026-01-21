@@ -1,0 +1,62 @@
+# Git
+.git
+.gitignore
+.gitmodules
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.env
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Project specific - large files
+wandb/
+results/
+checkpoints/
+*.pt
+data/
+output/
+input/
+huggingface_ckpt/
+
+# Testing
+.pytest_cache/
+.coverage
+test/
+tests/
+finetune/
+
+# Misc
+*.sh
+*.log
