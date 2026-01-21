@@ -26,24 +26,41 @@ ENV FORCE_CUDA=1
 # Install PyTorch first
 RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 
-# Install PyTorch3D from source with correct CUDA arch
+# Install PyTorch3D from source
 RUN pip install "git+https://github.com/facebookresearch/pytorch3d.git" --no-build-isolation
 
-# Clone and install UniK3D separately with proper build isolation disabled
+# Install all other dependencies first (before UniK3D)
+RUN pip install \
+    "diffusers>=0.33.1" \
+    "xformers>=0.0.30" \
+    "transformers>=4.48.3" \
+    "py360convert>=0.1.0" \
+    "einops>=0.7.0" \
+    "pillow>=8.0.0" \
+    "scikit-image>=0.24.0" \
+    "sentencepiece>=0.2.0" \
+    "peft>=0.7.1" \
+    "open3d>=0.19.0" \
+    "trimesh>=4.6.1" \
+    "opencv-python" \
+    "flask"
+
+# Install nunchaku (prebuilt wheel for Python 3.11 Linux)
+RUN pip install "nunchaku @ https://github.com/mit-han-lab/nunchaku/releases/download/v0.2.0/nunchaku-0.2.0+torch2.7-cp311-cp311-linux_x86_64.whl"
+
+# Install viser fork
+RUN pip install "git+https://github.com/ZiYang-xie/viser.git"
+
+# Clone and install UniK3D from source with correct CUDA settings
 RUN git clone --depth 1 https://github.com/lpiccinelli-eth/UniK3D.git /tmp/UniK3D && \
     cd /tmp/UniK3D && \
-    pip install --no-build-isolation -e . && \
-    cd /app
+    pip install --no-build-isolation . && \
+    rm -rf /tmp/UniK3D
 
-# Copy and install main package (without UniK3D since it's already installed)
+# Copy and install main package (dependencies already installed)
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
-
-# Install remaining dependencies (UniK3D already installed)
-RUN pip install . --no-deps || pip install .
-
-# Install Flask for web UI
-RUN pip install flask
+RUN pip install --no-deps .
 
 COPY demo.py ./
 
