@@ -19,7 +19,7 @@ RUN python -m pip install --upgrade pip setuptools wheel
 
 WORKDIR /app
 
-# Copy and install
+# Copy and install main package
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
 
@@ -31,8 +31,11 @@ RUN pip install .
 RUN pip install flask
 
 COPY demo.py ./
-COPY submodules/ ./submodules/ 2>/dev/null || true
-RUN if [ -d "submodules/ml-sharp" ]; then pip install -e submodules/ml-sharp; fi
+
+# Clone and install ml-sharp (optional feature)
+RUN mkdir -p submodules && \
+    git clone --depth 1 https://github.com/apple/ml-sharp.git submodules/ml-sharp && \
+    pip install -e submodules/ml-sharp
 
 # Copy web UI
 COPY web/ ./web/
