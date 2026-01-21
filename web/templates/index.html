@@ -66,6 +66,11 @@
         <h1>WorldGen</h1>
         <p class="subtitle">Generate 3D scenes from text or images</p>
 
+        <div class="card" id="gpuCard">
+            <h2>GPU Status</h2>
+            <div id="gpuStatus">Checking...</div>
+        </div>
+
         <div class="card">
             <h2>Generate Scene</h2>
             <div class="tabs">
@@ -195,9 +200,28 @@
             document.getElementById('outputsList').innerHTML = html || '<p style="color:#64748b">No outputs yet</p>';
         }
 
+        // Update GPU status
+        async function updateGpuStatus() {
+            try {
+                const res = await fetch('/gpu');
+                const gpu = await res.json();
+                const el = document.getElementById('gpuStatus');
+                if (gpu.available) {
+                    el.innerHTML = `<span style="color:#22c55e">✓</span> ${gpu.device}<br>
+                        <span style="color:#64748b">VRAM: ${gpu.vram_used_gb}GB / ${gpu.vram_total_gb}GB used</span>`;
+                } else {
+                    el.innerHTML = `<span style="color:#ef4444">✗</span> ${gpu.error || 'No GPU detected'}`;
+                }
+            } catch (e) {
+                document.getElementById('gpuStatus').innerHTML = '<span style="color:#ef4444">✗</span> Error checking GPU';
+            }
+        }
+
         // Initial load
+        updateGpuStatus();
         updateJobsList();
         updateOutputsList();
+        setInterval(updateGpuStatus, 10000);
         setInterval(updateJobsList, 5000);
     </script>
 </body>
