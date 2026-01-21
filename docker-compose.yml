@@ -1,14 +1,9 @@
-version: "3.9"
-
 services:
   worldgen:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: worldgen:latest
+    build: .
     container_name: worldgen
+    restart: unless-stopped
 
-    # GPU support - requires nvidia-container-toolkit
     deploy:
       resources:
         reservations:
@@ -17,51 +12,18 @@ services:
               count: all
               capabilities: [gpu]
 
-    # Environment variables
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      # Set your Hugging Face token here or use .env file
-      - HF_TOKEN=${HF_TOKEN:-}
-      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+      - HF_TOKEN=${HF_TOKEN}
 
-    # Volume mounts
     volumes:
-      # Output directory - generated scenes will be saved here
       - ./output:/app/output
-      # Hugging Face cache - persist downloaded models
-      - ${HF_CACHE_DIR:-~/.cache/huggingface}:/root/.cache/huggingface
-      # Optional: mount input images for i2s mode
-      - ./input:/app/input:ro
+      - ./input:/app/input
+      - hf_cache:/root/.cache/huggingface
 
-    # Expose Viser visualization port
     ports:
-      - "8080:8080"
+      - "5000:5000"   # Web UI
+      - "8080:8080"   # Viser 3D viewer
 
-    # Interactive mode
-    stdin_open: true
-    tty: true
-
-    # Default command (override with docker-compose run)
-    command: ["--help"]
-
-  # Service for text-to-scene generation
-  worldgen-t2s:
-    extends:
-      service: worldgen
-    container_name: worldgen-t2s
-    command: ["-p", "${PROMPT:-A beautiful mountain landscape with a river}"]
-
-  # Service for image-to-scene generation
-  worldgen-i2s:
-    extends:
-      service: worldgen
-    container_name: worldgen-i2s
-    command: ["-i", "/app/input/${INPUT_IMAGE:-image.jpg}"]
-
-  # Low VRAM mode service (for GPUs with <24GB VRAM)
-  worldgen-lowvram:
-    extends:
-      service: worldgen
-    container_name: worldgen-lowvram
-    command: ["-p", "${PROMPT:-A beautiful landscape}", "--low_vram"]
+volumes:
+  hf_cache:

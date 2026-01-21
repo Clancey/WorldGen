@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorldGen</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 2rem;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { color: #94a3b8; margin-bottom: 2rem; }
+        .card { background: #1e293b; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .card h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #f1f5f9; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.9rem; }
+        input[type="text"], textarea, select {
+            width: 100%; padding: 0.75rem; border: 1px solid #334155; border-radius: 8px;
+            background: #0f172a; color: #e2e8f0; font-size: 1rem;
+        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #3b82f6; }
+        textarea { resize: vertical; min-height: 80px; }
+        .checkbox-group { display: flex; gap: 1.5rem; margin-top: 0.5rem; }
+        .checkbox-group label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        input[type="checkbox"] { width: 18px; height: 18px; accent-color: #3b82f6; }
+        .btn {
+            background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem;
+            border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 500;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn:disabled { background: #475569; cursor: not-allowed; }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .tab {
+            padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;
+            background: transparent; border: 1px solid #334155; color: #94a3b8;
+        }
+        .tab.active { background: #3b82f6; border-color: #3b82f6; color: white; }
+        .job {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem; background: #0f172a; border-radius: 8px; margin-bottom: 0.5rem;
+        }
+        .job-info { flex: 1; }
+        .job-prompt { color: #94a3b8; font-size: 0.85rem; margin-top: 0.25rem; }
+        .status {
+            padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 500;
+        }
+        .status.queued { background: #fbbf24; color: #000; }
+        .status.running { background: #3b82f6; color: #fff; }
+        .status.completed { background: #22c55e; color: #fff; }
+        .status.failed { background: #ef4444; color: #fff; }
+        .output-list { margin-top: 1rem; }
+        .output-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.75rem; background: #0f172a; border-radius: 8px; margin-bottom: 0.5rem;
+        }
+        .output-item a { color: #3b82f6; text-decoration: none; }
+        .output-item a:hover { text-decoration: underline; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WorldGen</h1>
+        <p class="subtitle">Generate 3D scenes from text or images</p>
+
+        <div class="card">
+            <h2>Generate Scene</h2>
+            <div class="tabs">
+                <div class="tab active" data-mode="t2s">Text to Scene</div>
+                <div class="tab" data-mode="i2s">Image to Scene</div>
+            </div>
+
+            <form id="generateForm">
+                <div class="form-group" id="promptGroup">
+                    <label for="prompt">Prompt</label>
+                    <textarea id="prompt" placeholder="A beautiful mountain landscape with a river and pine trees"></textarea>
+                </div>
+
+                <div class="form-group hidden" id="imageGroup">
+                    <label for="imagePath">Image Path (in /app/input/)</label>
+                    <input type="text" id="imagePath" placeholder="image.jpg">
+                </div>
+
+                <div class="form-group">
+                    <label>Options</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="useSharp"> Use ml-sharp</label>
+                        <label><input type="checkbox" id="returnMesh"> Return Mesh</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">Generate</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Jobs</h2>
+            <div id="jobsList"></div>
+        </div>
+
+        <div class="card">
+            <h2>Outputs</h2>
+            <div id="outputsList" class="output-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 't2s';
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentMode = tab.dataset.mode;
+                document.getElementById('promptGroup').classList.toggle('hidden', currentMode !== 't2s');
+                document.getElementById('imageGroup').classList.toggle('hidden', currentMode !== 'i2s');
+            });
+        });
+
+        // Form submission
+        document.getElementById('generateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Starting...';
+
+            const data = {
+                mode: currentMode,
+                prompt: document.getElementById('prompt').value,
+                image_path: '/app/input/' + document.getElementById('imagePath').value,
+                use_sharp: document.getElementById('useSharp').checked,
+                return_mesh: document.getElementById('returnMesh').checked
+            };
+
+            try {
+                const res = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                pollJob(result.job_id);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Generate';
+        });
+
+        // Poll job status
+        async function pollJob(jobId) {
+            const interval = setInterval(async () => {
+                const res = await fetch(`/status/${jobId}`);
+                const job = await res.json();
+                updateJobsList();
+                if (job.status === 'completed' || job.status === 'failed') {
+                    clearInterval(interval);
+                    updateOutputsList();
+                }
+            }, 2000);
+        }
+
+        // Update jobs list
+        async function updateJobsList() {
+            const res = await fetch('/jobs');
+            const jobs = await res.json();
+            const html = jobs.reverse().map(job => `
+                <div class="job">
+                    <div class="job-info">
+                        <strong>${job.id}</strong>
+                        <div class="job-prompt">${job.prompt || 'N/A'}</div>
+                        <div class="job-prompt">${job.message}</div>
+                    </div>
+                    <span class="status ${job.status}">${job.status}</span>
+                </div>
+            `).join('');
+            document.getElementById('jobsList').innerHTML = html || '<p style="color:#64748b">No jobs yet</p>';
+        }
+
+        // Update outputs list
+        async function updateOutputsList() {
+            const res = await fetch('/outputs');
+            const files = await res.json();
+            const html = files.map(f => `
+                <div class="output-item">
+                    <span>${f.name}</span>
+                    <a href="/output/${f.name}" download>Download</a>
+                </div>
+            `).join('');
+            document.getElementById('outputsList').innerHTML = html || '<p style="color:#64748b">No outputs yet</p>';
+        }
+
+        // Initial load
+        updateJobsList();
+        updateOutputsList();
+        setInterval(updateJobsList, 5000);
+    </script>
+</body>
+</html>
