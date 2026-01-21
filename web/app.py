@@ -260,15 +260,35 @@ if __name__ == '__main__':
     # Check paths
     print(f"HF cache dir: {os.environ.get('HF_HOME', '/root/.cache/huggingface')}", flush=True)
 
-    # Test WorldGen import at startup
+    # Test imports one by one to find which one crashes
     print("=" * 60, flush=True)
-    print("Testing WorldGen import...", flush=True)
-    try:
-        from worldgen import WorldGen
-        print("WorldGen import: OK", flush=True)
-    except Exception as e:
-        print(f"WorldGen import FAILED: {e}", flush=True)
-        traceback.print_exc()
+    print("Testing imports step by step...", flush=True)
+    sys.stdout.flush()
+
+    imports_to_test = [
+        ("numpy", "import numpy"),
+        ("PIL", "from PIL import Image"),
+        ("torch", "import torch"),
+        ("torchvision", "import torchvision"),
+        ("einops", "import einops"),
+        ("transformers", "import transformers"),
+        ("diffusers", "import diffusers"),
+        ("open3d", "import open3d"),
+        ("trimesh", "import trimesh"),
+        ("skimage", "import skimage"),
+        ("py360convert", "import py360convert"),
+        ("peft", "import peft"),
+        ("worldgen", "from worldgen import WorldGen"),
+    ]
+
+    for name, import_stmt in imports_to_test:
+        print(f"  Testing {name}...", end=" ", flush=True)
+        try:
+            exec(import_stmt)
+            print("OK", flush=True)
+        except Exception as e:
+            print(f"FAILED: {e}", flush=True)
+            traceback.print_exc()
         sys.stdout.flush()
 
     print("=" * 60, flush=True)
