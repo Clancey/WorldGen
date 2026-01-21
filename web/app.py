@@ -251,6 +251,7 @@ if __name__ == '__main__':
             print("CUDA available: NO - This will not work properly!", flush=True)
     except Exception as e:
         print(f"PyTorch import failed: {e}", flush=True)
+        traceback.print_exc()
 
     # Check HF token
     hf_token = os.environ.get('HF_TOKEN') or os.environ.get('HUGGING_FACE_HUB_TOKEN')
@@ -259,8 +260,20 @@ if __name__ == '__main__':
     # Check paths
     print(f"HF cache dir: {os.environ.get('HF_HOME', '/root/.cache/huggingface')}", flush=True)
 
+    # Test WorldGen import at startup
+    print("=" * 60, flush=True)
+    print("Testing WorldGen import...", flush=True)
+    try:
+        from worldgen import WorldGen
+        print("WorldGen import: OK", flush=True)
+    except Exception as e:
+        print(f"WorldGen import FAILED: {e}", flush=True)
+        traceback.print_exc()
+        sys.stdout.flush()
+
     print("=" * 60, flush=True)
     print("Starting Flask server on port 5000...", flush=True)
     print("=" * 60 + "\n", flush=True)
+    sys.stdout.flush()
 
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
