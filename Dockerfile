@@ -19,13 +19,28 @@ RUN python -m pip install --upgrade pip setuptools wheel
 
 WORKDIR /app
 
-# Copy and install main package
+# Set CUDA architecture for building extensions (RTX 3090 = SM_86)
+ENV TORCH_CUDA_ARCH_LIST="8.6"
+ENV FORCE_CUDA=1
+
+# Install PyTorch first
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+
+# Install PyTorch3D from source with correct CUDA arch
+RUN pip install "git+https://github.com/facebookresearch/pytorch3d.git" --no-build-isolation
+
+# Clone and install UniK3D separately with proper build isolation disabled
+RUN git clone --depth 1 https://github.com/lpiccinelli-eth/UniK3D.git /tmp/UniK3D && \
+    cd /tmp/UniK3D && \
+    pip install --no-build-isolation -e . && \
+    cd /app
+
+# Copy and install main package (without UniK3D since it's already installed)
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
 
-RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
-RUN pip install "git+https://github.com/facebookresearch/pytorch3d.git" --no-build-isolation
-RUN pip install .
+# Install remaining dependencies (UniK3D already installed)
+RUN pip install . --no-deps || pip install .
 
 # Install Flask for web UI
 RUN pip install flask
