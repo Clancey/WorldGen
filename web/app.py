@@ -192,6 +192,8 @@ def test_imports():
         import torch
         results['torch'] = f"OK - {torch.__version__}"
         results['cuda'] = f"{'Available' if torch.cuda.is_available() else 'NOT available'}"
+        if torch.cuda.is_available():
+            results['cuda_device'] = torch.cuda.get_device_name(0)
     except Exception as e:
         results['torch'] = f"FAILED: {e}"
 
@@ -207,13 +209,39 @@ def test_imports():
     except Exception as e:
         results['transformers'] = f"FAILED: {e}"
 
-    try:
-        from worldgen import WorldGen
-        results['worldgen'] = "OK"
-    except Exception as e:
-        results['worldgen'] = f"FAILED: {e}"
+    # Skip worldgen test - it crashes due to UniK3D
+    results['worldgen'] = "SKIPPED - use /test-unik3d endpoint"
 
     return jsonify(results)
+
+@app.route('/test-unik3d')
+def test_unik3d():
+    """Test UniK3D import - WARNING: may crash the server!"""
+    print("=" * 60, flush=True)
+    print("TESTING UNIK3D IMPORT - THIS MAY CRASH!", flush=True)
+    print("=" * 60, flush=True)
+    sys.stdout.flush()
+
+    try:
+        print("Step 1: Checking CUDA...", flush=True)
+        import torch
+        print(f"  CUDA available: {torch.cuda.is_available()}", flush=True)
+        if torch.cuda.is_available():
+            print(f"  Device: {torch.cuda.get_device_name(0)}", flush=True)
+        sys.stdout.flush()
+
+        print("Step 2: Importing unik3d.models...", flush=True)
+        sys.stdout.flush()
+        from unik3d.models import UniK3D
+        print("  UniK3D class imported OK", flush=True)
+        sys.stdout.flush()
+
+        return jsonify({"status": "OK", "message": "UniK3D imported successfully"})
+    except Exception as e:
+        print(f"UniK3D import failed: {e}", flush=True)
+        traceback.print_exc()
+        sys.stdout.flush()
+        return jsonify({"status": "FAILED", "error": str(e)})
 
 @app.route('/output/<filename>')
 def download_output(filename):
@@ -265,6 +293,8 @@ if __name__ == '__main__':
     print("Testing imports step by step...", flush=True)
     sys.stdout.flush()
 
+    # Skip UniK3D and worldgen imports at startup - they crash the server
+    # These will be tested on first job instead
     imports_to_test = [
         ("numpy", "import numpy"),
         ("PIL", "from PIL import Image"),
@@ -281,15 +311,7 @@ if __name__ == '__main__':
         ("peft", "import peft"),
         ("xformers", "import xformers"),
         ("nunchaku", "import nunchaku"),
-        ("UniK3D", "from unik3d.models import UniK3D"),
-        ("worldgen.utils.splat_utils", "from worldgen.utils.splat_utils import SplatFile"),
-        ("worldgen.utils.general_utils", "from worldgen.utils.general_utils import resize_img"),
-        ("worldgen.pano_depth", "from worldgen.pano_depth import build_depth_model"),
-        ("worldgen.pano_seg", "from worldgen.pano_seg import build_segment_model"),
-        ("worldgen.pano_gen", "from worldgen.pano_gen import build_pano_gen_model"),
-        ("worldgen.pano_sharp", "from worldgen.pano_sharp import build_sharp_model"),
-        ("worldgen.pano_inpaint", "from worldgen.pano_inpaint import build_inpaint_model"),
-        ("worldgen.WorldGen", "from worldgen import WorldGen"),
+        # UniK3D and worldgen skipped - they crash on import
     ]
 
     for name, import_stmt in imports_to_test:
