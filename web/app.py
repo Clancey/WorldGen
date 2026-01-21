@@ -268,6 +268,7 @@ if __name__ == '__main__':
     imports_to_test = [
         ("numpy", "import numpy"),
         ("PIL", "from PIL import Image"),
+        ("cv2", "import cv2"),
         ("torch", "import torch"),
         ("torchvision", "import torchvision"),
         ("einops", "import einops"),
@@ -278,7 +279,17 @@ if __name__ == '__main__':
         ("skimage", "import skimage"),
         ("py360convert", "import py360convert"),
         ("peft", "import peft"),
-        ("worldgen", "from worldgen import WorldGen"),
+        ("xformers", "import xformers"),
+        ("nunchaku", "import nunchaku"),
+        ("UniK3D", "from unik3d.models import UniK3D"),
+        ("worldgen.utils.splat_utils", "from worldgen.utils.splat_utils import SplatFile"),
+        ("worldgen.utils.general_utils", "from worldgen.utils.general_utils import resize_img"),
+        ("worldgen.pano_depth", "from worldgen.pano_depth import build_depth_model"),
+        ("worldgen.pano_seg", "from worldgen.pano_seg import build_segment_model"),
+        ("worldgen.pano_gen", "from worldgen.pano_gen import build_pano_gen_model"),
+        ("worldgen.pano_sharp", "from worldgen.pano_sharp import build_sharp_model"),
+        ("worldgen.pano_inpaint", "from worldgen.pano_inpaint import build_inpaint_model"),
+        ("worldgen.WorldGen", "from worldgen import WorldGen"),
     ]
 
     for name, import_stmt in imports_to_test:
